@@ -2,6 +2,9 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from auth import get_current_user
+from routes.cases import router as cases_router
+from routes.stream import router as stream_router
+from routes.actions import router as actions_router
 
 app = FastAPI(title="ClaimKaro API", version="0.1.0")
 
@@ -17,11 +20,11 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Routers  (uncomment as each module is implemented)
+# Routers
 # ---------------------------------------------------------------------------
-# from routes.cases   import router as cases_router;   app.include_router(cases_router,   prefix="/cases",   tags=["cases"])
-# from routes.stream  import router as stream_router;  app.include_router(stream_router,  prefix="/stream",  tags=["stream"])
-# from routes.actions import router as actions_router; app.include_router(actions_router, prefix="/actions", tags=["actions"])
+app.include_router(cases_router)
+app.include_router(stream_router)
+app.include_router(actions_router)
 
 
 # ---------------------------------------------------------------------------

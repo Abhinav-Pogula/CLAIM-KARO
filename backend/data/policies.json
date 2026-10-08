@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "note": "Values are approximate summaries for the demo. Check each against the official page before judging and update return_days / warranty_months if needed.",
+    "demo_recipient_note": "support_email is null where no public complaint email exists. The email action sends to DEMO_RECIPIENT during the hackathon."
+  },
+  "_default": {
+    "name": "Generic seller",
+    "type": "default",
+    "aliases": [],
+    "return_days": 7,
+    "warranty_months": 12,
+    "support_email": null,
+    "complaint_url": "https://consumerhelpline.gov.in",
+    "clause": "Under the Consumer Protection Act, 2019, a buyer is entitled to a remedy (replacement, repair or refund) for goods with a manufacturing defect, and can file a complaint with the National Consumer Helpline if the seller does not resolve it.",
+    "source_url": "https://consumerhelpline.gov.in"
+  },
+  "amazon": {
+    "name": "Amazon India",
+    "type": "platform",
+    "aliases": ["amazon", "amazon.in", "amazon india", "cloudtail", "appario"],
+    "return_days": 7,
+    "warranty_months": null,
+    "support_email": null,
+    "complaint_url": "https://www.amazon.in/gp/css/order-history",
+    "clause": "Most electronics sold on Amazon India can be returned or replaced within the return window if they arrive damaged, defective or different from the description.",
+    "source_url": "https://www.amazon.in/gp/help/customer/display.html"
+  },
+  "flipkart": {
+    "name": "Flipkart",
+    "type": "platform",
+    "aliases": ["flipkart", "flipkart.com", "retailnet", "ekart"],
+    "return_days": 7,
+    "warranty_months": null,
+    "support_email": null,
+    "complaint_url": "https://www.flipkart.com/account/orders",
+    "clause": "Flipkart allows replacement or return within the product's return window when the item delivered is damaged, defective or not as described.",
+    "source_url": "https://www.flipkart.com/pages/returnpolicy"
+  },
+  "samsung": {
+    "name": "Samsung India",
+    "type": "brand",
+    "aliases": ["samsung", "samsung india", "galaxy"],
+    "return_days": null,
+    "warranty_months": 12,
+    "support_email": null,
+    "complaint_url": "https://www.samsung.com/in/support/",
+    "clause": "Samsung smartphones and accessories carry a manufacturer's warranty against manufacturing defects, serviced through authorised Samsung service centres.",
+    "source_url": "https://www.samsung.com/in/support/warranty/"
+  },
+  "apple": {
+    "name": "Apple India",
+    "type": "brand",
+    "aliases": ["apple", "iphone", "airpods", "ipad", "macbook"],
+    "return_days": null,
+    "warranty_months": 12,
+    "support_email": null,
+    "complaint_url": "https://support.apple.com/en-in",
+    "clause": "Apple's one-year limited warranty covers the product against defects in materials and workmanship from the original date of purchase.",
+    "source_url": "https://www.apple.com/in/legal/warranty/"
+  },
+  "boat": {
+    "name": "boAt",
+    "type": "brand",
+    "aliases": ["boat", "boat lifestyle", "imagine marketing", "airdopes", "rockerz"],
+    "return_days": null,
+    "warranty_months": 12,
+    "support_email": null,
+    "complaint_url": "https://www.boat-lifestyle.com",
+    "clause": "boAt products carry a manufacturer's warranty against manufacturing defects, claimable through boAt's support with the purchase invoice.",
+    "source_url": "https://www.boat-lifestyle.com"
+  }
+}

@@ -18,12 +18,18 @@ class Settings(BaseSettings):
 
     # Email
     resend_api_key: str
+    email_from: str = "ClaimKaro <onboarding@resend.dev>"
+    email_safe_mode: bool = True
 
     # App
     frontend_url: str = "http://localhost:5173"
     demo_mode: bool = False
+    dev_auth: bool = False
+    dev_user_id: str = ""
+    demo_recipient: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
 settings = Settings()
+   

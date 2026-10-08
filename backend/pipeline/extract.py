@@ -140,9 +140,15 @@ async def extract_invoice(data: bytes, mime: str) -> InvoiceResult:
     return result
 
 
+WHISPER_HALLUCINATIONS = {"you", "thank you", "thanks", "thank you.", "you.", "bye",
+                          "thanks for watching", "thanks for watching!", ".", "..."}
+
+
 async def extract_voice(data: bytes, filename: str, mime: str) -> VoiceResult:
     _check(data, mime, AUDIO_MIMES, "Voice note")
-    transcript = await transcribe(data, filename, mime)
+    transcript = (await transcribe(data, filename, mime)).strip()
+    if transcript.lower() in WHISPER_HALLUCINATIONS or len(transcript.split()) < 3:
+        raise ExtractError("Voice note is silent, too short or unclear. Please record again.")
     result = await reason(VOICE_SYSTEM, f"Transcript:\n{transcript}", VoiceResult)
     result.transcript = transcript  # always keep the real transcript, never the model's copy
     return result
