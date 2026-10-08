@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 
 /**
  * BackButton: goes to the previous page in this app, or to `fallback`
@@ -17,9 +18,25 @@ export default function BackButton({ fallback = '/cases', label = 'Back' }) {
     <button
       type="button"
       onClick={goBack}
-      className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white bg-slate-900/70 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-full px-4 py-1.5 transition-colors cursor-pointer"
+      className="mb-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all"
+      style={{
+        background: 'rgba(28,32,48,0.7)',
+        border: '1px solid rgba(132,204,22,0.10)',
+        color: '#9196B0',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.color = '#E8EAF6'
+        e.currentTarget.style.borderColor = 'rgba(132,204,22,0.25)'
+        e.currentTarget.style.background = 'rgba(28,32,48,0.95)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.color = '#9196B0'
+        e.currentTarget.style.borderColor = 'rgba(132,204,22,0.10)'
+        e.currentTarget.style.background = 'rgba(28,32,48,0.7)'
+      }}
     >
-      <span aria-hidden="true">←</span> {label}
+      <ArrowLeft size={14} />
+      {label}
     </button>
   )
 }
