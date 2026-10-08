@@ -25,7 +25,11 @@ export default function Review() {
     setSaving((s) => ({ ...s, [field]: true }))
     try {
       const updated = await updateCaseFile(id, { [field]: value })
-      setDetail((d) => ({ ...d, casefile: updated.casefile }))
+      setDetail((d) => ({
+        ...d,
+        case_file: updated.case_file,
+        low_confidence: updated.low_confidence,
+      }))
     } catch (e) {
       alert(getErrorMessage(e))
     } finally {
@@ -69,9 +73,12 @@ export default function Review() {
     )
   }
 
-  const cf = detail?.casefile || {}
-  const hasFlags = detail?.flags?.length > 0
-  const blockingFlag = detail?.flags?.find((f) => f.severity === 'blocking')
+  const cf = detail?.case_file || {}
+  const photoUrl = detail?.evidence?.find((e) => e.kind === 'photo')?.url
+  const flags = detail?.flags || []
+  const hasFlags = flags.length > 0
+  const blockingFlag = flags.find((f) => f.severity === 'blocking')
+  const isExtracted = detail?.status === 'extracted'
 
   return (
     <div className="min-h-screen bg-slate-950 text-white px-4 py-12">
@@ -90,12 +97,12 @@ export default function Review() {
         </div>
 
         {/* Defect Photo */}
-        {detail?.evidence_urls?.photo && (
+        {photoUrl && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <h2 className="text-sm font-semibold text-slate-300 mb-3">📸 Defect Photo</h2>
             <DefectBox
-              url={detail.evidence_urls.photo}
-              box={cf.defect_box?.value}
+              url={photoUrl}
+              box={cf.defect_box}
             />
           </div>
         )}
@@ -118,12 +125,12 @@ export default function Review() {
           />
         </div>
 
-        {/* Flags */}
+        {/* Flags (if present) */}
         {hasFlags && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <h2 className="text-sm font-semibold text-slate-300 mb-3">⚠️ Verification Notes</h2>
             <ul className="space-y-2">
-              {detail.flags.map((flag, i) => (
+              {flags.map((flag, i) => (
                 <li
                   key={i}
                   className={`text-xs px-3 py-2 rounded-lg ${
@@ -139,7 +146,7 @@ export default function Review() {
           </div>
         )}
 
-        {/* Approve */}
+        {/* Actions */}
         <div className="flex justify-end gap-3">
           <button
             onClick={() => navigate('/cases')}
@@ -147,23 +154,32 @@ export default function Review() {
           >
             ← My Cases
           </button>
-          <button
-            onClick={handleApprove}
-            disabled={approving || !!blockingFlag}
-            title={blockingFlag ? `Blocking issue: ${blockingFlag.message}` : undefined}
-            className="px-7 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500
-              disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 
-              transition-all cursor-pointer"
-          >
-            {approving ? (
-              <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Generating…
-              </span>
-            ) : (
-              'Approve & Generate →'
-            )}
-          </button>
+          {isExtracted ? (
+            <button
+              onClick={handleApprove}
+              disabled={approving || !!blockingFlag}
+              title={blockingFlag ? `Blocking issue: ${blockingFlag.message}` : undefined}
+              className="px-7 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500
+                disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 
+                transition-all cursor-pointer"
+            >
+              {approving ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Generating…
+                </span>
+              ) : (
+                'Approve & Generate →'
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate(`/cases/${id}/result`)}
+              className="px-7 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all cursor-pointer"
+            >
+              Continue to Result →
+            </button>
+          )}
         </div>
       </div>
     </div>

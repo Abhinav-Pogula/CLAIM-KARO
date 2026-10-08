@@ -3,9 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { openSSE } from '../lib/sse'
 import Timeline from '../components/Timeline'
 
-const ORDERED_STEPS = ['download', 'photo', 'voice', 'invoice', 'fuse', 'verify', 'score', 'draft']
+const ORDERED_STEPS = ['download', 'photo', 'voice', 'invoice', 'fuse']
 
 const initialSteps = ORDERED_STEPS.map((name) => ({ name, status: 'pending', summary: '' }))
+
+function summarize(step, output) {
+  if (!output) return ''
+  if (output.error) return output.error
+  if (step === 'photo') return output.defect_type ? `Found: ${output.defect_type}` : 'No clear defect found'
+  if (step === 'voice') return output.complaint_summary || output.transcript || ''
+  if (step === 'invoice') return [output.order_id, output.price && `Rs. ${output.price}`, output.purchase_date].filter(Boolean).join(' · ')
+  if (step === 'fuse') return output.low_confidence?.length ? `${output.low_confidence.length} fields need your check` : 'All fields filled'
+  return ''
+}
 
 export default function Analyze() {
   const { id } = useParams()
@@ -30,35 +40,23 @@ export default function Analyze() {
       {
         onEvent(event) {
           if (closed) return
-          switch (event.type) {
-            case 'step_start':
-              updateStep(event.step, { status: 'running', summary: '' })
-              break
-            case 'step_done':
-              updateStep(event.step, {
-                status: 'done',
-                summary: event.summary || '',
-              })
-              break
-            case 'step_error':
-              updateStep(event.step, {
-                status: 'error',
-                summary: event.error || 'Failed',
-              })
-              break
-            case 'done':
-              setDone(true)
-              break
-            default:
-              break
+          if (event.type === 'step') {
+            updateStep(event.step, {
+              status: event.status,
+              summary: event.status === 'error' ? (event.output?.error || event.message || 'Failed') : summarize(event.step, event.output),
+            })
+          } else if (event.type === 'complete') {
+            if (event.replayed) { navigate(`/cases/${id}/review`); return }
+            setDone(true)
+          } else if (event.type === 'error') {
+            setError(event.message || 'Analysis failed')
           }
         },
         onError(err) {
           if (closed) return
           setError(err?.message || 'Stream error — please reload.')
         },
-      },
-      { method: 'POST' }
+      }
     )
 
     closeRef.current = cleanup
@@ -66,7 +64,7 @@ export default function Analyze() {
       closed = true
       cleanup?.()
     }
-  }, [id])
+  }, [id, navigate])
 
   // Auto-navigate to /review once complete
   useEffect(() => {
@@ -76,7 +74,6 @@ export default function Analyze() {
     }
   }, [done, id, navigate])
 
-  const allDone = steps.every((s) => s.status === 'done' || s.status === 'error')
   const hasError = steps.some((s) => s.status === 'error')
 
   return (

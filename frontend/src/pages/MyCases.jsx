@@ -54,10 +54,10 @@ function CaseCard({ caseItem, onClick }) {
             )}
           </div>
           <p className="text-sm font-semibold text-slate-200 truncate group-hover:text-white transition-colors">
-            {caseItem.product || caseItem.casefile?.product?.value || 'Unnamed case'}
+            {caseItem.product || caseItem.case_file?.product?.value || 'Unnamed case'}
           </p>
           <p className="text-xs text-slate-500 mt-1 truncate">
-            {caseItem.defect_type || caseItem.casefile?.defect_type?.value || 'Defect not identified'}
+            {caseItem.defect_type || caseItem.case_file?.defect_type?.value || 'Defect not identified'}
           </p>
         </div>
         <div className="flex-shrink-0 text-right">

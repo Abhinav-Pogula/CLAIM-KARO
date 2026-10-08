@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DropZone from '../components/DropZone'
 import VoiceRecorder from '../components/VoiceRecorder'
@@ -13,7 +13,7 @@ export default function NewCase() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]         = useState(null)
 
-  const canSubmit = photo || invoice || voice
+  const canSubmit = photo && invoice && voice
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -46,7 +46,7 @@ export default function NewCase() {
             Upload Your Evidence
           </h1>
           <p className="mt-3 text-slate-400 text-sm leading-relaxed">
-            Share your defect photo, invoice, and/or a voice note describing what went wrong.
+            Share your defect photo, invoice, and a voice note describing what went wrong.
             Our AI will analyse everything and draft your complaint automatically.
           </p>
         </div>
@@ -56,11 +56,10 @@ export default function NewCase() {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <DropZone
               label="Defect Photo"
-              accept={{ 'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif'] }}
-              maxSizeMB={10}
-              hint="Show the damage or defect clearly"
+              accept="image/jpeg,image/png,image/webp"
+              description="Show the damage or defect clearly"
               file={photo}
-              onFile={setPhoto}
+              onFileSelect={setPhoto}
               onClear={() => setPhoto(null)}
             />
           </div>
@@ -69,25 +68,32 @@ export default function NewCase() {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <DropZone
               label="Invoice / Bill"
-              accept={{
-                'image/*': ['.jpg', '.jpeg', '.png', '.webp'],
-                'application/pdf': ['.pdf'],
-              }}
-              maxSizeMB={10}
-              hint="Upload PDF or photo of your purchase receipt"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              description="Upload PDF or photo of your purchase receipt"
               file={invoice}
-              onFile={setInvoice}
+              onFileSelect={setInvoice}
               onClear={() => setInvoice(null)}
             />
           </div>
 
           {/* Voice Note */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
             <VoiceRecorder
               file={voice}
               onRecording={setVoice}
               onClear={() => setVoice(null)}
             />
+            <div className="border-t border-slate-800 pt-3">
+              <DropZone
+                label="or upload an audio file"
+                accept="audio/*,.m4a,.mp3,.wav,.ogg,.webm"
+                description="Upload an existing voice recording"
+                file={voice}
+                onFileSelect={setVoice}
+                onClear={() => setVoice(null)}
+                icon="🎵"
+              />
+            </div>
           </div>
 
           {/* Error */}
@@ -119,7 +125,7 @@ export default function NewCase() {
 
           {!canSubmit && (
             <p className="text-center text-xs text-slate-500">
-              Please upload at least one file to continue.
+              Please upload all three items (photo, invoice, voice note) to continue.
             </p>
           )}
         </form>
