@@ -8,7 +8,7 @@
 |---|---|
 | 🌐 Live app | https://claimkaro-jhet.onrender.com |
 | ⚙️ Backend API | https://claimkaro-api-wuh1.onrender.com/health |
-| 🎬 Demo video | _add link_ |
+| 🎬 Demo video | https://youtu.be/0YgZE5Zr0_U?feature=shared |
 
 > The backend runs on Render's free tier and sleeps when idle. If the first request is slow, open the backend `/health` link once and wait about 50 seconds.
 
