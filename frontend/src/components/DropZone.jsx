@@ -78,8 +78,8 @@ export default function DropZone({
           onDrop={handleDrop}
           className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center min-h-[140px] ${
             isDragOver
-              ? 'border-indigo-500 bg-indigo-950/40 scale-[1.01]'
-              : 'border-slate-700 bg-slate-900/60 hover:border-slate-600 hover:bg-slate-900'
+              ? 'border-lime-400 bg-lime-400/10 scale-[1.01]'
+              : 'border-slate-700 bg-[#111318] hover:border-lime-500/50 hover:bg-lime-400/[0.03]'
           }`}
         >
           <input
@@ -106,7 +106,7 @@ export default function DropZone({
               className="w-16 h-16 rounded-lg object-cover border border-slate-700 bg-slate-950 flex-shrink-0"
             />
           ) : (
-            <div className="w-16 h-16 rounded-lg bg-indigo-950/70 border border-indigo-700/50 flex flex-col items-center justify-center text-indigo-400 flex-shrink-0">
+            <div className="w-16 h-16 rounded-lg bg-lime-400/10 border border-lime-400/25 flex flex-col items-center justify-center text-lime-400 flex-shrink-0">
               <span className="text-2xl">📄</span>
               <span className="text-[10px] font-bold uppercase mt-0.5">
                 {file.name?.split('.').pop() || 'FILE'}
