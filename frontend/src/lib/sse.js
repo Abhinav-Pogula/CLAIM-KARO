@@ -7,23 +7,43 @@ import { supabase } from './supabase'
  * current Supabase session token for authentication.
  */
 export async function openSSE(url, { onMessage, onError, onClose, signal } = {}) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  let token = ''
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    token = session?.access_token || ''
+  } catch (err) {
+    console.warn('Could not read session token for SSE:', err)
+  }
 
-  await fetchEventSource(`${import.meta.env.VITE_API_URL}${url}`, {
-    headers: {
-      Authorization: session?.access_token ? `Bearer ${session.access_token}` : '',
-    },
-    signal,
-    onmessage(ev) {
-      onMessage?.(JSON.parse(ev.data || '{}'))
-    },
-    onerror(err) {
-      onError?.(err)
-    },
-    onclose() {
-      onClose?.()
-    },
-  })
+  const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`
+
+  try {
+    await fetchEventSource(fullUrl, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+      signal,
+      onmessage(ev) {
+        try {
+          const parsed = JSON.parse(ev.data || '{}')
+          onMessage?.(parsed, ev.event)
+        } catch (e) {
+          onMessage?.(ev.data, ev.event)
+        }
+      },
+      onerror(err) {
+        console.warn('SSE connection error:', err)
+        onError?.(err)
+      },
+      onclose() {
+        onClose?.()
+      },
+    })
+  } catch (err) {
+    console.warn('SSE open failed:', err)
+    onError?.(err)
+  }
 }

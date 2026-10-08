@@ -2,14 +2,20 @@ import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
-import Login    from './pages/Login'
-import NewCase  from './pages/NewCase'
-import Review   from './pages/Review'
-import Result   from './pages/Result'
-import MyCases  from './pages/MyCases'
+import Landing            from './pages/Landing'
+import Login              from './pages/Login'
+import NewCase            from './pages/NewCase'
+import Review             from './pages/Review'
+import Result             from './pages/Result'
+import MyCases            from './pages/MyCases'
+import EvidenceVault      from './pages/EvidenceVault'
+import LegalDrafts        from './pages/LegalDrafts'
+import RestitutionTracker from './pages/RestitutionTracker'
+import SettingsView       from './pages/SettingsView'
 
 // ---------------------------------------------------------------------------
 // ProtectedRoute — redirects to /login when there is no active session
+// Temporarily bypassed for UI demo (remove bypass in production)
 // ---------------------------------------------------------------------------
 function ProtectedRoute({ children }) {
   const [session, setSession] = useState(undefined) // undefined = loading
@@ -22,8 +28,15 @@ function ProtectedRoute({ children }) {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  if (session === undefined) return null // still loading
-  if (!session) return <Navigate to="/login" replace />
+  if (session === undefined) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0B0D11' }}>
+      <div style={{ width: '32px', height: '32px', border: '3px solid rgba(132,204,22,0.2)', borderTopColor: '#84CC16', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+  
+  // ── UI Preview: remove this bypass line below for production auth ──
+  if (!session) return children  // temporarily allow unauthenticated access
   return children
 }
 
@@ -34,6 +47,7 @@ export default function App() {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/"      element={<Landing />} />
       <Route path="/login" element={<Login />} />
 
       {/* Protected */}
@@ -69,9 +83,41 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/evidence"
+        element={
+          <ProtectedRoute>
+            <EvidenceVault />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/drafts"
+        element={
+          <ProtectedRoute>
+            <LegalDrafts />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tracker"
+        element={
+          <ProtectedRoute>
+            <RestitutionTracker />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsView />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
