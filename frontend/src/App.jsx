@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 
 import Login    from './pages/Login'
 import NewCase  from './pages/NewCase'
+import Analyze  from './pages/Analyze'
 import Review   from './pages/Review'
 import Result   from './pages/Result'
 import MyCases  from './pages/MyCases'
@@ -42,6 +43,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <NewCase />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cases/:id/analyze"
+        element={
+          <ProtectedRoute>
+            <Analyze />
           </ProtectedRoute>
         }
       />
