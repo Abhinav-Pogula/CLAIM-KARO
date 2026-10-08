@@ -12,6 +12,7 @@ import EvidenceVault      from './pages/EvidenceVault'
 import LegalDrafts        from './pages/LegalDrafts'
 import RestitutionTracker from './pages/RestitutionTracker'
 import SettingsView       from './pages/SettingsView'
+import Dashboard          from './pages/Dashboard'
 
 // ---------------------------------------------------------------------------
 // ProtectedRoute — redirects to /login when there is no active session
@@ -52,6 +53,14 @@ export default function App() {
       <Route path="/login" element={<Login />} />
 
       {/* Protected */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/new"
         element={

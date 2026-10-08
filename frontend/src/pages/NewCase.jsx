@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../components/DashboardLayout'
+import VoiceRecorder from '../components/VoiceRecorder'
 import {
   Upload, Mic, FileText, ChevronRight, Zap, X,
   CheckCircle, Camera, Volume2, File, Info, ArrowRight
@@ -30,10 +31,11 @@ const PLATFORMS = [
   'BigBasket', 'Blinkit', 'Nykaa', 'Zomato', 'Swiggy', 'Other',
 ]
 
-function DropZone({ type, icon: Icon, label, color, accept, hint }) {
+function DropZone({ type, icon: Icon, label, color, accept, hint, camera = false }) {
   const [dragging, setDragging] = useState(false)
   const [files, setFiles] = useState([])
   const inputRef = useRef()
+  const cameraInputRef = useRef()
 
   function handleDrop(e) {
     e.preventDefault()
@@ -58,6 +60,10 @@ function DropZone({ type, icon: Icon, label, color, accept, hint }) {
     >
       <input ref={inputRef} type="file" accept={accept} multiple hidden
         onChange={e => setFiles(prev => [...prev, ...Array.from(e.target.files)])} />
+      {camera && (
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden
+          onChange={e => setFiles(prev => [...prev, ...Array.from(e.target.files)])} />
+      )}
 
       {/* Color accent top strip */}
       <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl" style={{ background: color }} />
@@ -88,9 +94,14 @@ function DropZone({ type, icon: Icon, label, color, accept, hint }) {
           style={{ border: `1.5px dashed ${color}30`, background: `${color}04` }}
         >
           <Upload size={20} style={{ color: `${color}80` }} className="mb-2" />
-          <p className="text-xs font-medium" style={{ color: `${color}80` }}>
-            Drop files here or <span style={{ color }}>browse</span>
-          </p>
+          <p className="text-xs font-medium" style={{ color: `${color}80` }}>Drop files here or <span style={{ color }}>browse</span></p>
+          {camera && (
+            <button type="button" onClick={event => { event.stopPropagation(); cameraInputRef.current?.click() }}
+              className="mt-3 flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold"
+              style={{ background: 'linear-gradient(135deg, #84CC16, #65A300)', color: '#0B0D11' }}>
+              <Camera size={14} /> Take photo
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -114,6 +125,27 @@ function DropZone({ type, icon: Icon, label, color, accept, hint }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function VoiceEvidence() {
+  const uploadRef = useRef()
+  const [recording, setRecording] = useState(null)
+  const [uploaded, setUploaded] = useState(null)
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl p-5" style={{ background: '#161921', border: '1px solid rgba(132,204,22,0.12)' }}>
+      <div className="flex items-center justify-between">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: 'rgba(132,204,22,0.12)' }}><Mic size={20} style={{ color: '#84CC16' }} /></div>
+        <span className="font-mono-ck text-[10px] uppercase tracking-widest" style={{ color: '#84CC16' }}>Voice evidence</span>
+      </div>
+      <div><h3 className="font-jakarta text-base font-bold" style={{ color: '#E8EAF6' }}>Record a voice note</h3><p className="mt-1 text-xs" style={{ color: '#9196B0' }}>Tell us what happened, or upload an existing call recording.</p></div>
+      <VoiceRecorder onRecordingComplete={(blob) => setRecording(blob)} onRemove={() => setRecording(null)} />
+      <div className="flex items-center gap-2"><span className="h-px flex-1" style={{ background: 'rgba(132,204,22,0.1)' }} /><span className="font-mono-ck text-[10px]" style={{ color: '#6B7280' }}>OR</span><span className="h-px flex-1" style={{ background: 'rgba(132,204,22,0.1)' }} /></div>
+      <input ref={uploadRef} type="file" accept="audio/*" hidden onChange={event => setUploaded(event.target.files?.[0] || null)} />
+      <button type="button" onClick={() => uploadRef.current?.click()} className="flex h-10 items-center justify-center gap-2 rounded-xl text-xs font-bold" style={{ background: 'linear-gradient(135deg, #84CC16, #65A300)', color: '#0B0D11' }}><Upload size={14} /> Upload audio file</button>
+      {(recording || uploaded) && <p className="text-xs" style={{ color: '#84CC16' }}><CheckCircle size={13} className="mr-1 inline" />{uploaded ? uploaded.name : 'Voice note ready to attach'}</p>}
     </div>
   )
 }
@@ -261,15 +293,9 @@ export default function NewCase() {
               color="#84CC16"
               accept="image/*"
               hint="Upload clear photos of the defect, packaging damage, or issue."
+              camera
             />
-            <DropZone
-              type="Voice"
-              icon={Mic}
-              label="Voice Note / Recording"
-              color="#8B5CF6"
-              accept="audio/*"
-              hint="Record your complaint or upload call recordings with merchant."
-            />
+            <VoiceEvidence />
             <DropZone
               type="Invoice"
               icon={FileText}

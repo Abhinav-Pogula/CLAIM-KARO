@@ -7,6 +7,7 @@ export default function VoiceRecorder({ onRecordingComplete, onRemove }) {
   const [recordingTime, setRecordingTime] = useState(0)
   const [audioUrl, setAudioUrl] = useState(null)
   const [audioBlob, setAudioBlob] = useState(null)
+  const [error, setError] = useState('')
   const [bars, setBars] = useState([20, 45, 75, 30, 80, 50, 65, 35, 90, 40, 25, 60])
 
   const mediaRecorderRef = useRef(null)
@@ -47,9 +48,15 @@ export default function VoiceRecorder({ onRecordingComplete, onRemove }) {
 
   const startRecording = async () => {
     try {
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        throw new Error('Voice recording is not supported by this browser.')
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      mediaRecorderRef.current = new MediaRecorder(stream)
+      const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
+        .find(type => MediaRecorder.isTypeSupported?.(type))
+      mediaRecorderRef.current = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
       audioChunksRef.current = []
+      setError('')
 
       mediaRecorderRef.current.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -58,7 +65,7 @@ export default function VoiceRecorder({ onRecordingComplete, onRemove }) {
       }
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const blob = new Blob(audioChunksRef.current, { type: mediaRecorderRef.current?.mimeType || 'audio/webm' })
         const url = URL.createObjectURL(blob)
         setAudioBlob(blob)
         setAudioUrl(url)
@@ -71,22 +78,14 @@ export default function VoiceRecorder({ onRecordingComplete, onRemove }) {
       setIsRecording(true)
       setRecordingTime(0)
     } catch (err) {
-      console.warn('Microphone access denied or simulated mode enabled:', err)
-      // Fallback simulation for environments without audio hardware
-      setIsRecording(true)
-      setRecordingTime(0)
+      console.warn('Microphone access was unavailable:', err)
+      setError(err.message || 'Microphone access was denied. Allow microphone access and try again.')
     }
   }
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop()
-    } else {
-      // simulated fallback
-      const simulatedBlob = new Blob(['simulated-audio'], { type: 'audio/webm' })
-      setAudioBlob(simulatedBlob)
-      setAudioUrl('simulated-voice-note.webm')
-      if (onRecordingComplete) onRecordingComplete(simulatedBlob, 'simulated-voice-note.webm')
     }
     setIsRecording(false)
   }
@@ -139,6 +138,7 @@ export default function VoiceRecorder({ onRecordingComplete, onRemove }) {
           <p className="font-mono-ck text-[11px] mt-1" style={{ color: '#9196B0' }}>
             Explain the defect, refusal by seller, and purchase context
           </p>
+          {error && <p className="mt-3 text-xs" style={{ color: '#F87171' }}>{error}</p>}
         </div>
       )}
 
@@ -219,14 +219,7 @@ export default function VoiceRecorder({ onRecordingComplete, onRemove }) {
             <RotateCcw size={15} />
           </button>
 
-          {audioUrl !== 'simulated-voice-note.webm' && (
-            <audio
-              ref={audioPlayerRef}
-              src={audioUrl}
-              onEnded={() => setIsPlaying(false)}
-              className="hidden"
-            />
-          )}
+          <audio ref={audioPlayerRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
         </div>
       )}
     </div>

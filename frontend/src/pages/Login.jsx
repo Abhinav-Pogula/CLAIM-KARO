@@ -41,11 +41,11 @@ export default function Login() {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-        navigate('/cases')
+        navigate(location.state?.from || '/dashboard')
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
-        if (data.session) navigate(location.state?.from || '/cases')
+        if (data.session) navigate(location.state?.from || '/dashboard')
         else setError('Check your email to verify your account, then sign in.')
       }
     } catch (err) {

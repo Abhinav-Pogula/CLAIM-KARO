@@ -2,11 +2,30 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const useMockAuth = String(import.meta.env.VITE_USE_MOCK || '').toLowerCase() === 'true'
+
+// Supabase secret/service-role keys must never be used by a browser client.
+// New-style secret keys are identifiable by their prefix. Legacy JWT service
+// keys are rejected by checking their public payload only (never their secret).
+const isSecretSupabaseKey = (key) => {
+  if (key.startsWith('sb_secret_')) return true
+  const parts = key.split('.')
+  if (parts.length !== 3) return false
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.role === 'service_role'
+  } catch {
+    return false
+  }
+}
+
 const hasSupabaseConfig = Boolean(
+  !useMockAuth &&
   supabaseUrl.startsWith('http') &&
   supabaseAnonKey &&
   !supabaseUrl.includes('your-project') &&
-  !supabaseAnonKey.includes('your-anon-key')
+  !supabaseAnonKey.includes('your-anon-key') &&
+  !isSecretSupabaseKey(supabaseAnonKey)
 )
 
 export const isMockAuth = !hasSupabaseConfig
