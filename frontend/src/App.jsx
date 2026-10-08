@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 
 import Landing            from './pages/Landing'
 import Login              from './pages/Login'
+import Dashboard          from './pages/Dashboard'
 import NewCase            from './pages/NewCase'
 import Analyze            from './pages/Analyze'
 import Review             from './pages/Review'
@@ -52,6 +53,14 @@ export default function App() {
       <Route path="/login" element={<Login />} />
 
       {/* Protected */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/new"
         element={

@@ -37,7 +37,7 @@ export default function NewCase() {
   return (
     <div className="min-h-screen bg-slate-950 text-white px-4 py-12 flex items-start justify-center">
       <div className="w-full max-w-xl">
-        <BackButton fallback={'/cases'} />
+        <BackButton fallback={'/dashboard'} />
         {/* Header */}
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-sm font-medium px-4 py-1.5 rounded-full mb-6">

@@ -18,7 +18,7 @@ export default function Login() {
     try {
       if (isMockClient) {
         // Dev mode: immediately go to new case or cases
-        navigate('/cases')
+        navigate('/dashboard')
         return
       }
 
@@ -29,7 +29,7 @@ export default function Login() {
       } else {
         const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
         if (signInErr) throw signInErr
-        navigate('/cases')
+        navigate('/dashboard')
       }
     } catch (err) {
       setError(err.message || 'Authentication failed')
@@ -64,7 +64,7 @@ export default function Login() {
               Backend <code className="bg-slate-900 px-1.5 py-0.5 rounded text-indigo-300">DEV_AUTH</code> mode is enabled. No Supabase login required.
             </div>
             <button
-              onClick={() => navigate('/cases')}
+              onClick={() => navigate('/dashboard')}
               className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
             >
               Continue to Dashboard →
