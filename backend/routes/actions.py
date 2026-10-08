@@ -18,6 +18,7 @@ from auth import get_current_user
 from pipeline.draft import ASK, _pick_policy
 from pipeline.verify import find_policies
 from routes.cases import download_evidence, get_case, update_case
+from routes.profile import get_demo_email
 from routes.stream import _log_event
 from schemas import CaseFile, Draft
 from services.email import EmailError, send_complaint
@@ -86,7 +87,8 @@ def action_email(case_id: str, body: EmailAction, user: dict = Depends(get_curre
             attachments.append((f"{label}.{ext}", data))
 
     try:
-        result = send_complaint(draft.to_email, subject, text, attachments, reply_to=user.get("email"))
+        result = send_complaint(draft.to_email, subject, text, attachments, reply_to=user.get("email"),
+                                deliver_to=get_demo_email(user["id"]))
     except EmailError as e:
         _log_event(case_id, "email", "error", {"error": str(e)})
         raise HTTPException(status_code=502, detail=str(e))

@@ -165,3 +165,7 @@ create policy "Authenticated users can read policies"
   on policies for select
   to authenticated
   using (true);
+
+
+-- ---- demo merchant inbox (complaint emails are delivered here in demo mode) ----
+alter table profiles add column if not exists demo_email text;

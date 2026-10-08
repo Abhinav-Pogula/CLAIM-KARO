@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Mail, Globe, FileDown, Check, Loader2, AlertCircle, Copy, ExternalLink } from 'lucide-react'
-import { downloadComplaintPdf, getPortalData, sendComplaintEmail, getErrorMessage } from '../lib/api'
+import { downloadComplaintPdf, getPortalData, sendComplaintEmail, getErrorMessage, getMe, setDemoInbox } from '../lib/api'
 
 /**
  * ActionMenu({ caseId, draft, caseStatus })
@@ -13,6 +13,17 @@ export default function ActionMenu({ caseId, draft = {}, caseStatus }) {
   const [portalData, setPortalData]   = useState(null)
   const [portalLoading, setPortalLoading] = useState(false)
   const [copied, setCopied]           = useState({})
+  const [inbox, setInbox]             = useState('')     // demo merchant inbox (delivery address)
+  const [savedInbox, setSavedInbox]   = useState('')
+  const [sentTo, setSentTo]           = useState('')
+
+  // Load the user's demo merchant inbox when the email tab opens
+  useEffect(() => {
+    if (activeTab !== 'email') return
+    getMe()
+      .then((me) => { setInbox(me?.demo_email || ''); setSavedInbox(me?.demo_email || '') })
+      .catch(() => {})
+  }, [activeTab])
 
   const editedSubject = draft.subject || ''
   const editedBody    = draft.body    || ''
@@ -22,13 +33,19 @@ export default function ActionMenu({ caseId, draft = {}, caseStatus }) {
     if (!emailForm.confirmed) return
     setEmailState({ loading: true, done: false, error: null })
     try {
-      await sendComplaintEmail(caseId, {
+      const target = inbox.trim()
+      if (target && target !== savedInbox) {
+        await setDemoInbox(target)
+        setSavedInbox(target)
+      }
+      const res = await sendComplaintEmail(caseId, {
         confirm:      true,
         subject:      editedSubject,
         body:         editedBody,
         sender_name:  emailForm.name  || undefined,
         sender_phone: emailForm.phone || undefined,
       })
+      setSentTo(res?.to || target)
       setEmailState({ loading: false, done: true, error: null })
     } catch (err) {
       setEmailState({ loading: false, done: false, error: getErrorMessage(err) })
@@ -169,6 +186,29 @@ export default function ActionMenu({ caseId, draft = {}, caseStatus }) {
             </span>
           </div>
 
+          {/* Demo merchant inbox: where the email is actually delivered */}
+          {!emailState.done && (
+            <div
+              className="rounded-xl px-4 py-3 space-y-2"
+              style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.25)' }}
+            >
+              <p className="font-mono-ck text-[10px] uppercase tracking-widest" style={{ color: '#F59E0B' }}>
+                Demo merchant inbox
+              </p>
+              <input
+                type="email"
+                value={inbox}
+                onChange={(e) => setInbox(e.target.value)}
+                placeholder="evaluator@example.com"
+                className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                style={{ background: 'rgba(11,13,17,0.8)', border: '1px solid rgba(245,158,11,0.25)', color: '#E8EAF6' }}
+              />
+              <p className="text-xs" style={{ color: '#9196B0' }}>
+                Demo mode: the complaint is delivered here instead of the real company, so you can check it.
+              </p>
+            </div>
+          )}
+
           {emailState.done ? (
             <div
               className="flex items-center gap-3 rounded-xl p-4"
@@ -176,7 +216,7 @@ export default function ActionMenu({ caseId, draft = {}, caseStatus }) {
             >
               <Check size={16} style={{ color: '#84CC16' }} />
               <p className="text-sm font-semibold" style={{ color: '#84CC16' }}>
-                Complaint email sent successfully!
+                Complaint email sent{sentTo ? ` to ${sentTo}` : ''}. Check that inbox (and spam).
               </p>
             </div>
           ) : (
@@ -225,7 +265,7 @@ export default function ActionMenu({ caseId, draft = {}, caseStatus }) {
 
               <button
                 onClick={handleSendEmail}
-                disabled={!emailForm.confirmed || emailState.loading}
+                disabled={!emailForm.confirmed || emailState.loading || !inbox.trim()}
                 className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   background: 'linear-gradient(135deg, #84CC16, #65A300)',

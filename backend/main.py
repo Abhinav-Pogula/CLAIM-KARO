@@ -5,6 +5,7 @@ from auth import get_current_user
 from routes.cases import router as cases_router
 from routes.stream import router as stream_router
 from routes.actions import router as actions_router
+from routes.profile import router as profile_router
 
 app = FastAPI(title="ClaimKaro API", version="0.1.0")
 
@@ -25,6 +26,7 @@ app.add_middleware(
 app.include_router(cases_router)
 app.include_router(stream_router)
 app.include_router(actions_router)
+app.include_router(profile_router)
 
 
 # ---------------------------------------------------------------------------
@@ -36,7 +38,3 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/me", tags=["auth"])
-async def me(current_user: dict = Depends(get_current_user)):
-    """Returns the authenticated user's id and email."""
-    return current_user

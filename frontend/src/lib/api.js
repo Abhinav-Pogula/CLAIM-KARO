@@ -87,4 +87,15 @@ export async function downloadComplaintPdf(caseId) {
   return res.data
 }
 
+// ---------- Profile: demo merchant inbox ----------
+export async function getMe() {
+  const { data } = await api.get('/me')
+  return data   // { id, email, demo_email }
+}
+
+export async function setDemoInbox(email) {
+  const { data } = await api.put('/me/demo-inbox', { email })
+  return data   // { demo_email }
+}
+
 export default api

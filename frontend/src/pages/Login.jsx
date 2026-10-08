@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, isMockClient } from '../lib/supabase'
+import { setDemoInbox, getErrorMessage } from '../lib/api'
+
+const PENDING_KEY = 'ck_pending_demo_inbox'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -9,6 +12,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [demoInbox, setDemoInboxValue] = useState('')
+
+  // Save the demo merchant inbox for the logged-in user (skips silently if empty)
+  const saveDemoInbox = async (value) => {
+    const v = (value || '').trim()
+    if (!v) return
+    await setDemoInbox(v)
+    try { localStorage.removeItem(PENDING_KEY) } catch { /* ignore */ }
+  }
 
   const handleAuth = async (e) => {
     e.preventDefault()
@@ -17,22 +29,34 @@ export default function Login() {
 
     try {
       if (isMockClient) {
-        // Dev mode: immediately go to new case or cases
+        // Dev mode: save the demo inbox, then go to the dashboard
+        await saveDemoInbox(demoInbox)
         navigate('/dashboard')
         return
       }
 
       if (isSignUp) {
-        const { error: signUpErr } = await supabase.auth.signUp({ email, password })
+        const { data, error: signUpErr } = await supabase.auth.signUp({ email, password })
         if (signUpErr) throw signUpErr
-        alert('Check your email to confirm your account, or sign in.')
+        if (data?.session) {
+          await saveDemoInbox(demoInbox)
+          navigate('/dashboard')
+        } else {
+          // Email confirmation is on: remember the inbox and save it after first sign-in
+          try { localStorage.setItem(PENDING_KEY, demoInbox.trim()) } catch { /* ignore */ }
+          alert('Check your email to confirm your account, then sign in.')
+          setIsSignUp(false)
+        }
       } else {
         const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
         if (signInErr) throw signInErr
+        let pending = ''
+        try { pending = localStorage.getItem(PENDING_KEY) || '' } catch { /* ignore */ }
+        await saveDemoInbox(demoInbox || pending)
         navigate('/dashboard')
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed')
+      setError(getErrorMessage(err) || 'Authentication failed')
     } finally {
       setLoading(false)
     }
@@ -58,24 +82,42 @@ export default function Login() {
         )}
 
         {isMockClient ? (
-          <div className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div className="p-4 bg-amber-950/30 border border-amber-500/30 rounded-xl">
+              <label className="block text-xs font-semibold text-amber-300 uppercase tracking-wider mb-1">
+                Demo merchant inbox
+              </label>
+              <p className="text-xs text-amber-200/70 mb-2">
+                Evaluators: enter your email. Complaint emails the agent sends to the company will be delivered here, so you can see them arrive.
+              </p>
+              <input
+                type="email"
+                required
+                value={demoInbox}
+                onChange={(e) => setDemoInboxValue(e.target.value)}
+                placeholder="evaluator@example.com"
+                className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              />
+            </div>
             <div className="p-4 bg-indigo-950/50 border border-indigo-500/30 rounded-xl text-indigo-200 text-sm">
               <span className="font-semibold block text-indigo-300 mb-1">Developer Mode Active</span>
               Backend <code className="bg-slate-900 px-1.5 py-0.5 rounded text-indigo-300">DEV_AUTH</code> mode is enabled. No Supabase login required.
             </div>
             <button
-              onClick={() => navigate('/dashboard')}
+              type="submit"
+              disabled={loading}
               className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
             >
-              Continue to Dashboard →
+              {loading ? 'Saving…' : 'Continue to Dashboard →'}
             </button>
             <button
-              onClick={() => navigate('/new')}
+              type="button"
+              onClick={async () => { await saveDemoInbox(demoInbox).catch(() => {}); navigate('/new') }}
               className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition-all cursor-pointer"
             >
               File a New Claim +
             </button>
-          </div>
+          </form>
         ) : (
           <form onSubmit={handleAuth} className="space-y-4">
             <div>
@@ -103,6 +145,23 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="p-4 bg-amber-950/30 border border-amber-500/30 rounded-xl">
+              <label className="block text-xs font-semibold text-amber-300 uppercase tracking-wider mb-1">
+                Demo merchant inbox
+              </label>
+              <p className="text-xs text-amber-200/70 mb-2">
+                Evaluators: enter your email. Complaint emails the agent sends to the company will be delivered here, so you can see them arrive.
+              </p>
+              <input
+                type="email"
+                required={isSignUp}
+                value={demoInbox}
+                onChange={(e) => setDemoInboxValue(e.target.value)}
+                placeholder="evaluator@example.com"
+                className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
 

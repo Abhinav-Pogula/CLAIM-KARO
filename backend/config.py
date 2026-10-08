@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     groq_whisper_model: str = "whisper-large-v3"
 
     # Email
-    resend_api_key: str
+    email_provider: str = "resend"        # "resend" or "brevo" (brevo can deliver to any inbox)
+    resend_api_key: str = ""
+    brevo_api_key: str = ""
     email_from: str = "ClaimKaro <onboarding@resend.dev>"
     email_safe_mode: bool = True
 
