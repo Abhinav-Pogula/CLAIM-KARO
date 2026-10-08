@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Shield, Eye, EyeOff, Zap, ArrowRight, CheckCircle } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { isMockAuth, supabase } from '../lib/supabase'
 
 export default function Login() {
   const navigate = useNavigate()
-  const [mode, setMode] = useState('login') // 'login' | 'signup'
+  const location = useLocation()
+  const [mode, setMode] = useState(new URLSearchParams(location.search).get('mode') === 'signup' ? 'signup' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -30,6 +32,10 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    if (mode === 'signup' && password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
     setLoading(true)
     try {
       if (mode === 'login') {
@@ -37,9 +43,10 @@ export default function Login() {
         if (error) throw error
         navigate('/cases')
       } else {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { data, error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
-        setError('Check your email for verification link.')
+        if (data.session) navigate(location.state?.from || '/cases')
+        else setError('Check your email to verify your account, then sign in.')
       }
     } catch (err) {
       setError(err.message || 'Authentication failed')
@@ -96,7 +103,7 @@ export default function Login() {
             {['login', 'signup'].map((m) => (
               <button
                 key={m}
-                onClick={() => { setMode(m); setError('') }}
+                onClick={() => { setMode(m); setError(''); setConfirmPassword('') }}
                 className="flex-1 py-2 rounded-lg text-sm font-semibold capitalize transition-all"
                 style={{
                   background: mode === m ? 'linear-gradient(135deg, #84CC16, #65A300)' : 'transparent',
@@ -136,9 +143,11 @@ export default function Login() {
                   type={showPass ? 'text' : 'password'}
                   required
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onFocus={() => setFocused('password')}
-                  onBlur={() => setFocused('')}
+                    onChange={e => setPassword(e.target.value)}
+                    onFocus={() => setFocused('password')}
+                    onBlur={() => setFocused('')}
+                    minLength="8"
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   placeholder="••••••••••"
                   style={{ ...inputStyle('password'), paddingRight: '48px' }}
                 />
@@ -152,6 +161,30 @@ export default function Login() {
                 </button>
               </div>
             </div>
+
+            {mode === 'signup' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold" style={{ color: '#9196B0', letterSpacing: '0.04em' }}>
+                  CONFIRM PASSWORD
+                </label>
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  required
+                  minLength="8"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter your password"
+                  style={inputStyle('confirmPassword')}
+                />
+              </div>
+            )}
+
+            {isMockAuth && (
+              <p className="text-xs leading-relaxed" style={{ color: '#9196B0' }}>
+                Demo mode is active. Add your Supabase credentials to enable real account registration and email verification.
+              </p>
+            )}
 
             {/* Error */}
             {error && (

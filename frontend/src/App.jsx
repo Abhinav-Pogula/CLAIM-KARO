@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
 import Landing            from './pages/Landing'
@@ -19,6 +19,7 @@ import SettingsView       from './pages/SettingsView'
 // ---------------------------------------------------------------------------
 function ProtectedRoute({ children }) {
   const [session, setSession] = useState(undefined) // undefined = loading
+  const location = useLocation()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
@@ -36,7 +37,7 @@ function ProtectedRoute({ children }) {
   )
   
   // ── UI Preview: remove this bypass line below for production auth ──
-  if (!session) return children  // temporarily allow unauthenticated access
+  if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return children
 }
 
