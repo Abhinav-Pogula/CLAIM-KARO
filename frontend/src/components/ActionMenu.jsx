@@ -118,28 +118,6 @@ export default function ActionMenu({ caseId, draft = {}, caseStatus }) {
     )
   }
 
-  /* ── Input field ── */
-  const Field = ({ label, placeholder, value, onChange, type = 'text' }) => (
-    <div>
-      <label className="mb-1.5 block font-mono-ck text-[10px] uppercase tracking-widest" style={{ color: '#6B7280' }}>
-        {label}
-      </label>
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className="w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-all placeholder:text-[#4a5070]"
-        style={{
-          background: 'rgba(28,32,48,0.8)',
-          border: '1px solid rgba(132,204,22,0.10)',
-          color: '#E8EAF6',
-        }}
-        onFocus={e => { e.currentTarget.style.borderColor = 'rgba(132,204,22,0.35)' }}
-        onBlur={e  => { e.currentTarget.style.borderColor = 'rgba(132,204,22,0.10)' }}
-      />
-    </div>
-  )
 
   return (
     <div className="space-y-4">
@@ -360,3 +338,28 @@ export default function ActionMenu({ caseId, draft = {}, caseStatus }) {
     </div>
   )
 }
+
+/* ── Input field ──
+   Defined OUTSIDE ActionMenu: a component declared inside another component is
+   re-created on every render, which remounts the <input> and drops focus after each keystroke. */
+const Field = ({ label, placeholder, value, onChange, type = 'text' }) => (
+  <div>
+    <label className="mb-1.5 block font-mono-ck text-[10px] uppercase tracking-widest" style={{ color: '#6B7280' }}>
+      {label}
+    </label>
+    <input
+      type={type}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      className="w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-all placeholder:text-[#4a5070]"
+      style={{
+        background: 'rgba(28,32,48,0.8)',
+        border: '1px solid rgba(132,204,22,0.10)',
+        color: '#E8EAF6',
+      }}
+      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(132,204,22,0.35)' }}
+      onBlur={e  => { e.currentTarget.style.borderColor = 'rgba(132,204,22,0.10)' }}
+    />
+  </div>
+)
