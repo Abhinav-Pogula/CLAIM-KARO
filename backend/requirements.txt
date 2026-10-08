@@ -8,3 +8,4 @@ groq
 resend
 reportlab
 sse-starlette
+httpx
