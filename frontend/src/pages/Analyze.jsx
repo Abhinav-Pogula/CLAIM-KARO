@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { openSSE } from '../lib/sse'
 import Timeline from '../components/Timeline'
+import BackButton from '../components/BackButton'
 
 const ORDERED_STEPS = ['download', 'photo', 'voice', 'invoice', 'fuse']
 
@@ -79,6 +80,7 @@ export default function Analyze() {
   return (
     <div className="min-h-screen bg-slate-950 text-white px-4 py-12 flex items-start justify-center">
       <div className="w-full max-w-lg">
+        <BackButton fallback={'/cases'} />
         {/* Header */}
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-sm font-medium px-4 py-1.5 rounded-full mb-6">

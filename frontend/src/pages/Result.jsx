@@ -4,6 +4,7 @@ import { openSSE } from '../lib/sse'
 import ScoreGauge from '../components/ScoreGauge'
 import FlagList from '../components/FlagList'
 import ActionMenu from '../components/ActionMenu'
+import BackButton from '../components/BackButton'
 
 const ROUTE_LABELS = {
   return: 'Return & refund',
@@ -73,6 +74,7 @@ export default function Result() {
   return (
     <div className="min-h-screen bg-slate-950 text-white px-4 py-12">
       <div className="max-w-3xl mx-auto space-y-8">
+        <BackButton fallback={`/cases/${id}/review`} />
         {/* Header */}
         <div>
           <div className="inline-flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-sm font-medium px-4 py-1.5 rounded-full mb-4">

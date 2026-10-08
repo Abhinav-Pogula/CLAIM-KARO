@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getCaseDetail, updateCaseFile, approveCase, getErrorMessage } from '../lib/api'
 import CaseFileForm from '../components/CaseFileForm'
 import DefectBox from '../components/DefectBox'
+import BackButton from '../components/BackButton'
 
 export default function Review() {
   const { id } = useParams()
@@ -83,6 +84,7 @@ export default function Review() {
   return (
     <div className="min-h-screen bg-slate-950 text-white px-4 py-12">
       <div className="max-w-3xl mx-auto space-y-8">
+        <BackButton fallback={'/cases'} />
         {/* Header */}
         <div>
           <div className="inline-flex items-center gap-2 bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-sm font-medium px-4 py-1.5 rounded-full mb-4">
