@@ -100,7 +100,7 @@ export default function VoiceRecorder({ onRecording, onClear, file }) {
         className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 flex flex-col items-center justify-center min-h-[140px] ${
           recording
             ? 'border-rose-500 bg-rose-950/30'
-            : 'border-slate-700 bg-slate-900/60'
+            : 'border-slate-700 bg-[#111318] hover:border-lime-500/50'
         }`}
       >
         {recording ? (
@@ -130,7 +130,7 @@ export default function VoiceRecorder({ onRecording, onClear, file }) {
             <button
               type="button"
               onClick={start}
-              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-500/30 transition-all cursor-pointer"
+              className="px-6 py-2.5 bg-lime-500 hover:bg-lime-400 text-slate-950 font-semibold rounded-xl shadow-lg shadow-lime-500/20 transition-all cursor-pointer"
             >
               🔴 Start Recording
             </button>
