@@ -1,4 +1,3 @@
-"""SSE streaming routes: /extract (run extraction pipeline) and /run (full pipeline)."""
 """Live extraction timeline over Server-Sent Events (SSE).
 
 GET /cases/{id}/extract  streams:
@@ -29,8 +28,69 @@ from schemas import CaseFile
 log = logging.getLogger("stream")
 router = APIRouter(prefix="/cases", tags=["stream"])
 
-_running: set[str] = set()        # case_ids currently extracting
 _tasks: set[asyncio.Task] = set()  # keep task references alive
+
+
+class _Job:
+    """One running pipeline. Many clients can watch it: a late or duplicate client
+    (React StrictMode double-mount, page refresh, second tab) gets the full history
+    replayed, then live events. Implements .put() so the pipelines treat it like a queue."""
+
+    def __init__(self):
+        self.history: list = []
+        self.subs: set[asyncio.Queue] = set()
+        self.finished = False
+
+    async def put(self, item):
+        if item is None:
+            self.finished = True
+        else:
+            self.history.append(item)
+        for q in list(self.subs):
+            q.put_nowait(item)
+
+    def subscribe(self) -> asyncio.Queue:
+        q: asyncio.Queue = asyncio.Queue()
+        for item in self.history:
+            q.put_nowait(item)
+        if self.finished:
+            q.put_nowait(None)
+        else:
+            self.subs.add(q)
+        return q
+
+
+_jobs: dict[str, _Job] = {}   # "extract:<id>" / "run:<id>" -> running job
+
+
+def _watch(job: _Job) -> EventSourceResponse:
+    """Stream a job's events to one client; detach cleanly when the client leaves."""
+    q = job.subscribe()
+
+    async def relay():
+        try:
+            while True:
+                item = await q.get()
+                if item is None:
+                    break
+                event, payload = item
+                yield _sse(event, payload)
+        finally:
+            job.subs.discard(q)
+
+    return EventSourceResponse(relay(), ping=15)
+
+
+def _start(key: str, coro_factory) -> EventSourceResponse:
+    """Attach to a running job for this key, or start a new one."""
+    job = _jobs.get(key)
+    if job is None:
+        job = _Job()
+        _jobs[key] = job
+        task = asyncio.create_task(coro_factory(job))
+        _tasks.add(task)
+        task.add_done_callback(_tasks.discard)
+    return _watch(job)
 
 
 def _sse(event: str, payload: dict) -> dict:
@@ -51,7 +111,7 @@ def _complete_payload(case_id: str, cf: CaseFile, errors: dict) -> dict:
             "low_confidence": low_confidence_fields(cf), "errors": errors}
 
 
-async def _process(case_id: str, user_id: str, queue: asyncio.Queue):
+async def _process(case_id: str, user_id: str, queue: "_Job"):
     """Download -> extract (parallel) -> fuse -> save. Pushes events into the queue."""
 
     async def emit(step, status, output=None, message=None):
@@ -85,7 +145,7 @@ async def _process(case_id: str, user_id: str, queue: asyncio.Queue):
         log.exception("extraction failed for case %s", case_id)
         await queue.put(("error", {"message": str(e)}))
     finally:
-        _running.discard(case_id)
+        _jobs.pop(f"extract:{case_id}", None)
         await queue.put(None)  # end of stream
 
 
@@ -107,24 +167,8 @@ async def extract_stream(case_id: str,
 
         return EventSourceResponse(replay())
 
-    if case_id in _running:
-        raise HTTPException(status_code=409, detail="Extraction already running for this case")
-    _running.add(case_id)
-
-    queue: asyncio.Queue = asyncio.Queue()
-    task = asyncio.create_task(_process(case_id, user["id"], queue))
-    _tasks.add(task)
-    task.add_done_callback(_tasks.discard)
-
-    async def relay():
-        while True:
-            item = await queue.get()
-            if item is None:
-                break
-            event, payload = item
-            yield _sse(event, payload)
-
-    return EventSourceResponse(relay(), ping=15)
+    # Running already (StrictMode double-mount, refresh, second tab): attach instead of failing.
+    return _start(f"extract:{case_id}", lambda job: _process(case_id, user["id"], job))
 
 
 # ======================= Stage B: verify -> score -> draft =======================
@@ -150,7 +194,7 @@ def _run_payload(case_id: str, status: str, verify_out: dict, score_out: dict, d
             "verify": verify_out, "score": score_out, "draft": draft_out}
 
 
-async def _run_process(case_id: str, user_id: str, cf: CaseFile, queue: asyncio.Queue, key: str):
+async def _run_process(case_id: str, user_id: str, cf: CaseFile, queue: "_Job", key: str):
     """verify -> score -> draft -> save. Pushes events into the queue."""
 
     async def emit(step, status, output=None, message=None):
@@ -184,7 +228,7 @@ async def _run_process(case_id: str, user_id: str, cf: CaseFile, queue: asyncio.
         log.exception("run failed for case %s", case_id)
         await queue.put(("error", {"message": str(e)}))
     finally:
-        _running.discard(key)
+        _jobs.pop(key, None)
         await queue.put(None)
 
 
@@ -215,22 +259,6 @@ async def run_stream(case_id: str,
         raise HTTPException(status_code=409, detail="Case has no case file")
 
     key = f"run:{case_id}"
-    if key in _running:
-        raise HTTPException(status_code=409, detail="Verification already running for this case")
-    _running.add(key)
-
     cf = CaseFile.model_validate(case["case_file"])
-    queue: asyncio.Queue = asyncio.Queue()
-    task = asyncio.create_task(_run_process(case_id, user["id"], cf, queue, key))
-    _tasks.add(task)
-    task.add_done_callback(_tasks.discard)
-
-    async def relay():
-        while True:
-            item = await queue.get()
-            if item is None:
-                break
-            event, payload = item
-            yield _sse(event, payload)
-
-    return EventSourceResponse(relay(), ping=15)
+    # Running already: attach instead of failing.
+    return _start(key, lambda job: _run_process(case_id, user["id"], cf, job, key))

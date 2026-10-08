@@ -1,95 +1,73 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
-export default function ScoreGauge({
-  score = 86,
-  size = 120,
-  strokeWidth = 8,
-  title = 'Win Probability',
-  subtitle = 'NCH Precedent Match',
-  showDetails = true,
-}) {
-  const [animatedScore, setAnimatedScore] = useState(0)
+function getArc(score) {
+  const radius = 70
+  const circumference = Math.PI * radius // semicircle (180°)
+  const filled = (score / 100) * circumference
+  return { radius, circumference, filled }
+}
 
-  useEffect(() => {
-    const timer = setTimeout(() => setAnimatedScore(score), 100)
-    return () => clearTimeout(timer)
-  }, [score])
+function getColor(score) {
+  if (score >= 70) return '#10b981' // emerald
+  if (score >= 40) return '#f59e0b' // amber
+  return '#f43f5e' // rose
+}
 
-  const radius = (size - strokeWidth * 2) / 2
-  const circumference = 2 * Math.PI * radius
-  const strokeDashoffset = circumference - (animatedScore / 100) * circumference
+/**
+ * ScoreGauge({ score, label, reasons })
+ * score: 0-100
+ * label: "Strong" | "Fair" | "Weak"
+ */
+export default function ScoreGauge({ score = 0, label = '', reasons = [] }) {
+  const { radius, circumference, filled } = getArc(score)
+  const color = getColor(score)
 
-  // Color scheme based on score
-  const color =
-    score >= 80 ? '#84CC16' : score >= 60 ? '#F59E0B' : '#EF4444'
+  const cx = 100
+  const cy = 100
+  const startX = cx - radius
+  const startY = cy
+  const endX = cx + radius
+  const endY = cy
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-        <svg
-          width={size}
-          height={size}
-          className="transform -rotate-90 origin-center"
-          style={{ filter: `drop-shadow(0 0 12px ${color}33)` }}
-        >
-          {/* Track background */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#1C2030"
-            strokeWidth={strokeWidth}
-          />
-          {/* Animated score stroke */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke={color}
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            style={{
-              transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
-            }}
-          />
-        </svg>
+      <svg width="200" height="110" viewBox="0 0 200 110" className="overflow-visible">
+        {/* track */}
+        <path
+          d={`M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${endX} ${endY}`}
+          fill="none"
+          stroke="#1e293b"
+          strokeWidth="14"
+          strokeLinecap="round"
+        />
+        {/* filled arc */}
+        <path
+          d={`M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${endX} ${endY}`}
+          fill="none"
+          stroke={color}
+          strokeWidth="14"
+          strokeLinecap="round"
+          strokeDasharray={`${filled} ${circumference}`}
+          style={{ transition: 'stroke-dasharray 1s ease' }}
+        />
+        {/* score text */}
+        <text x="100" y="88" textAnchor="middle" fill="white" fontSize="30" fontWeight="700">
+          {score}
+        </text>
+        <text x="100" y="108" textAnchor="middle" fill={color} fontSize="12" fontWeight="600">
+          {label}
+        </text>
+      </svg>
 
-        {/* Center score readout */}
-        <div className="absolute flex flex-col items-center justify-center text-center">
-          <span
-            className="font-mono-ck font-bold tracking-tight leading-none"
-            style={{
-              fontSize: size > 100 ? '28px' : '18px',
-              color: '#E8EAF6',
-            }}
-          >
-            {score}
-            <span style={{ fontSize: '12px', color: '#9196B0', fontWeight: 'normal' }}>
-              %
-            </span>
-          </span>
-          <span
-            className="font-mono-ck uppercase tracking-widest text-[9px] mt-0.5"
-            style={{ color: color }}
-          >
-            {score >= 80 ? 'STRONG' : score >= 60 ? 'MODERATE' : 'WEAK'}
-          </span>
-        </div>
-      </div>
-
-      {showDetails && (
-        <div className="text-center mt-2">
-          <p className="text-xs font-semibold" style={{ color: '#E8EAF6' }}>
-            {title}
-          </p>
-          <p className="font-mono-ck text-[10px]" style={{ color: '#9196B0' }}>
-            {subtitle}
-          </p>
-        </div>
+      {reasons.length > 0 && (
+        <ul className="mt-4 space-y-1.5 w-full max-w-sm">
+          {reasons.map((r, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs text-slate-300 leading-relaxed">
+              <span className="mt-0.5 text-slate-500">•</span>
+              {r}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )

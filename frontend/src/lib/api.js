@@ -1,13 +1,11 @@
 import axios from 'axios'
 import { supabase } from './supabase'
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
 const api = axios.create({
-  baseURL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
 })
 
-// Attach Supabase session token to every request
+// Attach Supabase session token to every request ONLY when a real session token exists
 api.interceptors.request.use(async (config) => {
   try {
     const {
@@ -17,17 +15,33 @@ api.interceptors.request.use(async (config) => {
     if (session?.access_token) {
       config.headers['Authorization'] = `Bearer ${session.access_token}`
     }
-  } catch (err) {
-    console.warn('Could not attach session token:', err)
+  } catch (_e) {
+    // pass through without token for backend dev_auth mode
   }
   return config
 })
 
-// Backend API helpers matching backend/routes/cases.py and actions.py
+/**
+ * Extract human-readable error message from backend error responses.
+ */
+export function getErrorMessage(err) {
+  const detail = err?.response?.data?.detail
+  if (detail) {
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) {
+      return detail.map((d) => d.msg || JSON.stringify(d)).join(', ')
+    }
+    return JSON.stringify(detail)
+  }
+  return err?.message || 'An unexpected error occurred'
+}
+
+// ---------- API Helpers ----------
+
 export async function createCase({ photo, voice, invoice }) {
   const formData = new FormData()
-  if (photo) formData.append('photo', photo)
-  if (voice) formData.append('voice', voice)
+  if (photo)   formData.append('photo',   photo)
+  if (voice)   formData.append('voice',   voice)
   if (invoice) formData.append('invoice', invoice)
 
   const res = await api.post('/cases', formData, {
@@ -56,11 +70,8 @@ export async function approveCase(caseId) {
   return res.data
 }
 
-export async function sendComplaintEmail(caseId, emailPayload) {
-  const res = await api.post(`/cases/${caseId}/actions/email`, {
-    confirm: true,
-    ...emailPayload,
-  })
+export async function sendComplaintEmail(caseId, payload) {
+  const res = await api.post(`/cases/${caseId}/actions/email`, payload)
   return res.data
 }
 

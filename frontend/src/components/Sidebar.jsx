@@ -7,7 +7,6 @@ import {
 } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard',           icon: LayoutDashboard, path: '/dashboard' },
   { id: 'cases',    label: 'Case Dossiers',       icon: FolderOpen,   path: '/cases'  },
   { id: 'new',      label: 'New Claim',            icon: Plus,         path: '/new'    },
   { id: 'evidence', label: 'Evidence Vault',       icon: FileText,     path: '/evidence' },

@@ -1,95 +1,83 @@
-import { CheckCircle2, AlertCircle, Info, BookOpen } from 'lucide-react'
+const SEVERITY_CONFIG = {
+  blocking: {
+    icon: '🚫',
+    bg: 'bg-red-950/60',
+    border: 'border-red-500/40',
+    text: 'text-red-200',
+    badge: 'bg-red-900 text-red-300',
+    label: 'Blocking',
+  },
+  warning: {
+    icon: '⚠️',
+    bg: 'bg-amber-950/50',
+    border: 'border-amber-500/40',
+    text: 'text-amber-200',
+    badge: 'bg-amber-900 text-amber-300',
+    label: 'Warning',
+  },
+  info: {
+    icon: 'ℹ️',
+    bg: 'bg-sky-950/40',
+    border: 'border-sky-500/30',
+    text: 'text-sky-200',
+    badge: 'bg-sky-900 text-sky-300',
+    label: 'Info',
+  },
+}
 
+/**
+ * FlagList({ flags })
+ * flags: [{ code, severity, message, fields, source }]
+ */
 export default function FlagList({ flags = [] }) {
-  const defaultFlags = [
-    {
-      id: 1,
-      type: 'strength',
-      title: 'Valid GST Invoice & Serial Match',
-      desc: 'Invoice #INV-2024-912 contains registered GSTIN, matching MAC/IMEI identifier, and valid purchase date.',
-      weight: '+35 pts',
-    },
-    {
-      id: 2,
-      type: 'strength',
-      title: 'Timely Written Notice within Warranty',
-      desc: 'Consumer lodged written grievance within standard 12-month manufacturer warranty period.',
-      weight: '+25 pts',
-    },
-    {
-      id: 3,
-      type: 'strength',
-      title: 'Unlawful Refusal by Authorized Service Center',
-      desc: 'Recorded job sheet acknowledges malfunction but arbitrarily categorizes internal fault as user induced.',
-      weight: '+26 pts',
-    },
-    {
-      id: 4,
-      type: 'precedent',
-      title: 'Binding NCDRC Precedent Citation',
-      desc: 'Direct match with NCDRC Ruling RP/182/2021 regarding consumer rights on electronic audio peripherals.',
-      weight: 'Precedent Match',
-    },
-  ]
-
-  const items = flags.length > 0 ? flags : defaultFlags
+  if (!flags.length) {
+    return (
+      <div className="flex items-center gap-3 p-4 bg-emerald-950/40 border border-emerald-500/30 rounded-xl">
+        <span className="text-2xl">✅</span>
+        <div>
+          <p className="text-sm font-semibold text-emerald-300">No issues found</p>
+          <p className="text-xs text-emerald-500 mt-0.5">All evidence checks passed cleanly.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-2.5">
-      {items.map((item) => {
-        const isStrength = item.type === 'strength'
-        const isPrecedent = item.type === 'precedent'
-
+    <ul className="space-y-3">
+      {flags.map((flag, i) => {
+        const cfg = SEVERITY_CONFIG[flag.severity] || SEVERITY_CONFIG.info
         return (
-          <div
-            key={item.id}
-            className="p-3 rounded-xl flex items-start justify-between gap-3 transition-colors"
-            style={{
-              background: '#161921',
-              border: '1px solid rgba(255,255,255,0.04)',
-            }}
+          <li
+            key={flag.code || i}
+            className={`flex gap-3 p-4 rounded-xl border ${cfg.bg} ${cfg.border}`}
           >
-            <div className="flex items-start gap-2.5">
-              <div
-                className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={{
-                  background: isStrength
-                    ? 'rgba(132,204,22,0.1)'
-                    : isPrecedent
-                    ? 'rgba(99,102,241,0.1)'
-                    : 'rgba(245,158,11,0.1)',
-                  color: isStrength ? '#84CC16' : isPrecedent ? '#818CF8' : '#F59E0B',
-                }}
-              >
-                {isStrength ? (
-                  <CheckCircle2 size={14} />
-                ) : isPrecedent ? (
-                  <BookOpen size={14} />
-                ) : (
-                  <AlertCircle size={14} />
+            <span className="flex-shrink-0 text-lg mt-0.5">{cfg.icon}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>
+                  {cfg.label}
+                </span>
+                {flag.source && (
+                  <span className="text-xs text-slate-500">{flag.source}</span>
+                )}
+                {flag.fields?.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {flag.fields.map((f) => (
+                      <span
+                        key={f}
+                        className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded"
+                      >
+                        {f}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
-
-              <div>
-                <h5 className="text-xs font-semibold text-white">{item.title}</h5>
-                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: '#9196B0' }}>
-                  {item.desc}
-                </p>
-              </div>
+              <p className={`text-sm leading-relaxed ${cfg.text}`}>{flag.message}</p>
             </div>
-
-            <span
-              className="font-mono-ck text-[10px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0"
-              style={{
-                background: isStrength ? 'rgba(132,204,22,0.1)' : 'rgba(255,255,255,0.06)',
-                color: isStrength ? '#84CC16' : '#E8EAF6',
-              }}
-            >
-              {item.weight}
-            </span>
-          </div>
+          </li>
         )
       })}
-    </div>
+    </ul>
   )
 }

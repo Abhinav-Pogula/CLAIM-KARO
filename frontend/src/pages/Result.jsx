@@ -1,196 +1,217 @@
-import { useNavigate } from 'react-router-dom'
-import DashboardLayout from '../components/DashboardLayout'
-import {
-  CheckCircle, Share2, Download, ArrowLeft, Zap,
-  Shield, Clock, TrendingUp, IndianRupee
-} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { openSSE } from '../lib/sse'
+import ScoreGauge from '../components/ScoreGauge'
+import FlagList from '../components/FlagList'
+import ActionMenu from '../components/ActionMenu'
+import BackButton from '../components/BackButton'
 
-const NEXT_STEPS = [
-  {
-    icon: Clock,
-    title: 'Merchant Response Window',
-    desc: "Amazon has 15 business days to respond. We'll notify you immediately.",
-    color: '#F59E0B',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Track Progress',
-    desc: 'Monitor your case status in real-time from your Case Dossiers dashboard.',
-    color: '#84CC16',
-  },
-  {
-    icon: Shield,
-    title: 'Auto-Escalation Ready',
-    desc: "If unanswered, we'll auto-prepare your NCH Forum filing under Section 35.",
-    color: '#8B5CF6',
-  },
-]
+const ROUTE_LABELS = {
+  return: 'Return & refund',
+  replacement: 'Replacement',
+  warranty: 'Warranty claim',
+  consumer_helpline: 'Consumer helpline',
+}
 
 export default function Result() {
+  const { id } = useParams()
   const navigate = useNavigate()
 
-  return (
-    <DashboardLayout title="Notice Sent" subtitle="Your legal notice has been dispatched">
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+  const [run, setRun] = useState(null)
+  const [steps, setSteps] = useState({ verify: 'pending', score: 'pending', draft: 'pending' })
+  const [streamError, setStreamError] = useState(null)
 
-        {/* ─── SUCCESS HERO ─── */}
-        <div
-          className="flex flex-col items-center justify-center text-center py-14 px-6 rounded-3xl relative overflow-hidden"
-          style={{ background: '#161921', border: '1px solid rgba(132,204,22,0.12)' }}
-        >
-          {/* Glow */}
-          <div className="pointer-events-none absolute inset-0"
-            style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(132,204,22,0.08) 0%, transparent 70%)' }} />
+  useEffect(() => {
+    let closed = false
+    const cleanup = openSSE(`/cases/${id}/run`, {
+      onEvent(event) {
+        if (closed) return
+        if (event.type === 'step') setSteps((s) => ({ ...s, [event.step]: event.status }))
+        else if (event.type === 'complete') setRun(event)
+        else if (event.type === 'error') setStreamError(event.message || 'Verification failed')
+      },
+      onError(err) { if (!closed) setStreamError(err?.message || 'Stream error') },
+    })
+    return () => { closed = true; cleanup?.() }
+  }, [id])
 
-          {/* Confetti dots */}
-          {[...Array(12)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1.5 h-1.5 rounded-full"
-              style={{
-                background: i % 3 === 0 ? '#84CC16' : i % 3 === 1 ? '#65A300' : '#22C55E',
-                top: `${Math.random() * 80}%`,
-                left: `${Math.random() * 100}%`,
-                opacity: 0.4,
-              }}
-            />
+  const loading = !run && !streamError
+  const score   = run?.score?.score ?? 0
+  const label   = run?.score?.label ?? ''
+  const reasons = run?.score?.reasons ?? []
+  const route   = run?.score?.route
+  const flags   = run?.verify?.flags ?? []
+  const verify  = run?.verify ?? {}
+  const draft   = run?.draft ?? {}
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6 px-4">
+        <div className="w-10 h-10 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+        <p className="text-slate-400 text-sm">Running verification & complaint drafting…</p>
+        <div className="flex flex-wrap justify-center gap-4 bg-slate-900 border border-slate-800 p-4 rounded-xl">
+          {['verify', 'score', 'draft'].map((s) => (
+            <div key={s} className="flex items-center gap-2 text-xs">
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${
+                  steps[s] === 'done'
+                    ? 'bg-emerald-400'
+                    : steps[s] === 'running'
+                    ? 'bg-indigo-400 animate-pulse'
+                    : steps[s] === 'error'
+                    ? 'bg-rose-400'
+                    : 'bg-slate-600'
+                }`}
+              />
+              <span className="capitalize text-slate-300 font-medium">{s}: {steps[s]}</span>
+            </div>
           ))}
+        </div>
+      </div>
+    )
+  }
 
-          <div
-            className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6 relative z-10"
-            style={{
-              background: 'linear-gradient(135deg, #84CC16, #65A300)',
-              boxShadow: '0 12px 48px rgba(132,204,22,0.4)',
-            }}
-          >
-            <CheckCircle size={36} color="#0B0D11" strokeWidth={2.5} />
+  return (
+    <div className="min-h-screen bg-slate-950 text-white px-4 py-12">
+      <div className="max-w-3xl mx-auto space-y-8">
+        <BackButton fallback={`/cases/${id}/review`} />
+        {/* Header */}
+        <div>
+          <div className="inline-flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-sm font-medium px-4 py-1.5 rounded-full mb-4">
+            ✅ Claim Report
           </div>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+            Your Claim Results
+          </h1>
+          {streamError && (
+            <div className="mt-3 p-4 bg-red-950/60 border border-red-500/30 rounded-xl text-red-200 text-sm">
+              {streamError}
+            </div>
+          )}
+        </div>
 
-          <h2 className="font-jakarta font-extrabold text-4xl mb-3 relative z-10"
-            style={{ color: '#E8EAF6', letterSpacing: '-0.03em' }}>
-            Notice Dispatched!
-          </h2>
-          <p className="text-base max-w-md relative z-10" style={{ color: '#9196B0' }}>
-            Your AI-drafted legal notice has been sent to Amazon under Consumer Protection Act 2019.
-            Reference case <span className="font-mono-ck" style={{ color: '#84CC16' }}>CK-90428</span>.
-          </p>
-
-          {/* Stats row */}
-          <div className="flex flex-wrap items-center justify-center gap-6 mt-8 relative z-10">
-            {[
-              { label: 'Claim Amount', value: '₹2,499', color: '#84CC16' },
-              { label: 'Legal Strength', value: '86/100', color: '#65A300' },
-              { label: 'Response Deadline', value: '15 business days', color: '#22C55E' },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="flex flex-col items-center px-6 py-4 rounded-2xl"
-                style={{ background: 'rgba(28,32,48,0.8)', border: '1px solid rgba(132,204,22,0.1)' }}
-              >
-                <span className="font-mono-ck font-bold text-xl" style={{ color: s.color }}>{s.value}</span>
-                <span className="text-xs mt-0.5" style={{ color: '#6B7280' }}>{s.label}</span>
-              </div>
-            ))}
+        {/* Route Card */}
+        {route && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Recommended Route</p>
+              <p className="text-lg font-bold text-white mt-1">{ROUTE_LABELS[route] || route}</p>
+            </div>
+            <span className="text-3xl">🎯</span>
           </div>
+        )}
 
-          {/* Actions */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-8 relative z-10">
-            <button
-              className="flex items-center gap-2 px-5 h-11 rounded-xl font-semibold text-sm transition-all"
-              style={{
-                background: 'rgba(28,32,48,0.8)',
-                border: '1px solid rgba(132,204,22,0.15)',
-                color: '#9196B0',
-              }}
-            >
-              <Download size={15} />
-              Download Notice PDF
-            </button>
-            <button
-              className="flex items-center gap-2 px-5 h-11 rounded-xl font-semibold text-sm"
-              style={{
-                background: 'rgba(28,32,48,0.8)',
-                border: '1px solid rgba(132,204,22,0.15)',
-                color: '#9196B0',
-              }}
-            >
-              <Share2 size={15} />
-              Share Case Link
-            </button>
-            <button
-              onClick={() => navigate('/cases')}
-              className="flex items-center gap-2 px-6 h-11 rounded-xl font-semibold text-sm transition-all active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg, #84CC16, #65A300)',
-                color: '#0B0D11',
-                boxShadow: '0 4px 16px rgba(132,204,22,0.25)',
-              }}
-            >
-              <ArrowLeft size={15} />
-              Back to Cases
-            </button>
+        {/* Key Verification Metrics */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-slate-300 mb-3">📅 Verification Metrics</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-slate-800/60 p-4 rounded-xl">
+              <p className="text-xs text-slate-400 font-medium">Days Since Purchase</p>
+              <p className="text-lg font-bold text-white mt-1">
+                {verify.days_since_purchase ?? '—'}
+              </p>
+            </div>
+            <div className="bg-slate-800/60 p-4 rounded-xl">
+              <p className="text-xs text-slate-400 font-medium">Return Window</p>
+              <p className="text-lg font-bold mt-1">
+                {verify.within_return_window == null ? (
+                  <span className="text-slate-400">—</span>
+                ) : verify.within_return_window ? (
+                  <span className="text-emerald-400">✓ Within window</span>
+                ) : (
+                  <span className="text-rose-400">✕ Expired</span>
+                )}
+              </p>
+            </div>
+            <div className="bg-slate-800/60 p-4 rounded-xl">
+              <p className="text-xs text-slate-400 font-medium">Warranty Coverage</p>
+              <p className="text-lg font-bold mt-1">
+                {verify.within_warranty == null ? (
+                  <span className="text-slate-400">—</span>
+                ) : verify.within_warranty ? (
+                  <span className="text-emerald-400">✓ Covered</span>
+                ) : (
+                  <span className="text-rose-400">✕ Expired</span>
+                )}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* ─── WHAT HAPPENS NEXT ─── */}
-        <div
-          className="p-6 rounded-2xl space-y-4"
-          style={{ background: '#161921', border: '1px solid rgba(132,204,22,0.08)' }}
-        >
-          <h3 className="font-jakarta font-bold text-base" style={{ color: '#E8EAF6' }}>
-            What happens next?
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {NEXT_STEPS.map((step) => {
-              const Icon = step.icon
-              return (
-                <div
-                  key={step.title}
-                  className="p-4 rounded-xl flex flex-col gap-3"
-                  style={{ background: 'rgba(28,32,48,0.8)', border: `1px solid ${step.color}15` }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center"
-                    style={{ background: `${step.color}15` }}
+        {/* Score */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center">
+          <h2 className="text-base font-semibold text-slate-300 mb-6">📊 Claim Strength</h2>
+          <ScoreGauge score={score} label={label} reasons={reasons} />
+        </div>
+
+        {/* Policy Clause Box */}
+        {draft.policy_clause && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h2 className="text-sm font-semibold text-slate-300 mb-3">📜 Applicable Policy Clause</h2>
+            <div className="p-4 bg-indigo-950/40 border border-indigo-500/30 rounded-xl text-indigo-200 text-sm leading-relaxed">
+              "{draft.policy_clause}"
+              {draft.policy_source && (
+                <div className="mt-3 text-xs">
+                  <a
+                    href={draft.policy_source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 underline hover:text-indigo-300 font-medium"
                   >
-                    <Icon size={18} style={{ color: step.color }} />
-                  </div>
-                  <h4 className="font-semibold text-sm" style={{ color: '#E8EAF6' }}>{step.title}</h4>
-                  <p className="text-xs leading-relaxed" style={{ color: '#9196B0' }}>{step.desc}</p>
+                    View Policy Source ↗
+                  </a>
                 </div>
-              )
-            })}
+              )}
+            </div>
           </div>
+        )}
+
+        {/* Draft Preview */}
+        {draft.body && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <h2 className="text-base font-semibold text-slate-200 mb-4">📝 Complaint Draft</h2>
+            {draft.subject && (
+              <div className="mb-3 p-3 bg-slate-800 rounded-xl">
+                <span className="text-xs font-semibold text-slate-400">Subject: </span>
+                <span className="text-sm text-slate-200">{draft.subject}</span>
+              </div>
+            )}
+            <div className="p-4 bg-slate-800/70 rounded-xl">
+              <pre className="text-sm text-slate-300 whitespace-pre-wrap font-sans leading-relaxed">
+                {draft.body}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* Flags */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h2 className="text-base font-semibold text-slate-200 mb-4">🔍 Verification Flags</h2>
+          <FlagList flags={flags} />
         </div>
 
-        {/* ─── NEW CLAIM CTA ─── */}
-        <div
-          className="flex items-center justify-between p-5 rounded-2xl"
-          style={{
-            background: 'rgba(132,204,22,0.04)',
-            border: '1px solid rgba(132,204,22,0.12)',
-          }}
-        >
-          <div>
-            <p className="font-semibold text-sm" style={{ color: '#E8EAF6' }}>Have another defective product?</p>
-            <p className="text-xs mt-0.5" style={{ color: '#9196B0' }}>
-              File another claim — it's free and takes under a minute.
-            </p>
-          </div>
+        {/* Actions */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h2 className="text-base font-semibold text-slate-200 mb-4">🚀 Take Action</h2>
+          <ActionMenu caseId={id} draft={draft} caseStatus={run?.status} />
+        </div>
+
+        {/* Nav */}
+        <div className="flex justify-between">
           <button
-            onClick={() => navigate('/new')}
-            className="flex items-center gap-2 px-5 h-10 rounded-xl font-semibold text-sm transition-all active:scale-95"
-            style={{
-              background: 'linear-gradient(135deg, #84CC16, #65A300)',
-              color: '#0B0D11',
-              boxShadow: '0 4px 16px rgba(132,204,22,0.2)',
-            }}
+            onClick={() => navigate(`/cases/${id}/review`)}
+            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
           >
-            <Zap size={14} fill="currentColor" />
-            New Claim
+            ← Back to Review
+          </button>
+          <button
+            onClick={() => navigate('/cases')}
+            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+          >
+            My Cases →
           </button>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   )
 }

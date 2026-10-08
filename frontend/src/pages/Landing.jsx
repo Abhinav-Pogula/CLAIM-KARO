@@ -130,7 +130,7 @@ export default function Landing() {
             Sign In
           </button>
           <button
-            onClick={() => navigate('/login?mode=signup')}
+            onClick={() => navigate('/new')}
             className="flex items-center gap-2 px-5 h-10 rounded-xl text-sm font-semibold transition-all active:scale-95"
             style={{
               background: 'linear-gradient(135deg, #84CC16, #65A300)',
@@ -187,7 +187,7 @@ export default function Landing() {
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-4">
               <button
-                onClick={() => navigate('/login?mode=signup')}
+                onClick={() => navigate('/new')}
                 className="flex items-center gap-2 px-7 h-12 rounded-xl font-semibold text-sm transition-all active:scale-95 hover:scale-[1.02]"
                 style={{
                   background: 'linear-gradient(135deg, #84CC16, #65A300)',
@@ -451,7 +451,7 @@ export default function Landing() {
             No lawyers. No fees. Just AI-powered consumer rights under the Consumer Protection Act 2019.
           </p>
           <button
-            onClick={() => navigate('/login?mode=signup')}
+            onClick={() => navigate('/new')}
             className="flex items-center gap-3 px-10 h-14 rounded-2xl font-jakarta font-bold text-base transition-all active:scale-95 hover:scale-[1.02]"
             style={{
               background: 'linear-gradient(135deg, #84CC16, #65A300)',

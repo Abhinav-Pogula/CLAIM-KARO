@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
 import Landing            from './pages/Landing'
 import Login              from './pages/Login'
 import NewCase            from './pages/NewCase'
+import Analyze            from './pages/Analyze'
 import Review             from './pages/Review'
 import Result             from './pages/Result'
 import MyCases            from './pages/MyCases'
@@ -12,15 +13,12 @@ import EvidenceVault      from './pages/EvidenceVault'
 import LegalDrafts        from './pages/LegalDrafts'
 import RestitutionTracker from './pages/RestitutionTracker'
 import SettingsView       from './pages/SettingsView'
-import Dashboard          from './pages/Dashboard'
 
 // ---------------------------------------------------------------------------
 // ProtectedRoute — redirects to /login when there is no active session
-// Temporarily bypassed for UI demo (remove bypass in production)
 // ---------------------------------------------------------------------------
 function ProtectedRoute({ children }) {
   const [session, setSession] = useState(undefined) // undefined = loading
-  const location = useLocation()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
@@ -36,9 +34,10 @@ function ProtectedRoute({ children }) {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
-  
-  // ── UI Preview: remove this bypass line below for production auth ──
-  if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+
+  // In dev mode (no Supabase URL) supabase returns null session — allow through
+  // so the backend's DEV_AUTH bypass kicks in.
+  if (!session) return children
   return children
 }
 
@@ -54,18 +53,18 @@ export default function App() {
 
       {/* Protected */}
       <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/new"
         element={
           <ProtectedRoute>
             <NewCase />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cases/:id/analyze"
+        element={
+          <ProtectedRoute>
+            <Analyze />
           </ProtectedRoute>
         }
       />

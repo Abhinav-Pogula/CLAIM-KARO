@@ -1,111 +1,43 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-const useMockAuth = String(import.meta.env.VITE_USE_MOCK || '').toLowerCase() === 'true'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Supabase secret/service-role keys must never be used by a browser client.
-// New-style secret keys are identifiable by their prefix. Legacy JWT service
-// keys are rejected by checking their public payload only (never their secret).
-const isSecretSupabaseKey = (key) => {
-  if (key.startsWith('sb_secret_')) return true
-  const parts = key.split('.')
-  if (parts.length !== 3) return false
-  try {
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-    return payload.role === 'service_role'
-  } catch {
-    return false
-  }
-}
-
-const hasSupabaseConfig = Boolean(
-  !useMockAuth &&
-  supabaseUrl.startsWith('http') &&
-  supabaseAnonKey &&
+const hasValidConfig =
+  Boolean(supabaseUrl && supabaseAnonKey) &&
   !supabaseUrl.includes('your-project') &&
-  !supabaseAnonKey.includes('your-anon-key') &&
-  !isSecretSupabaseKey(supabaseAnonKey)
-)
+  supabaseAnonKey !== 'your-anon-key'
 
-export const isMockAuth = !hasSupabaseConfig
+export const isMockClient = !hasValidConfig
 
-const DEMO_SESSION_KEY = 'claimkaro-demo-session'
-const getDemoSession = () => {
-  try {
-    return JSON.parse(window.localStorage.getItem(DEMO_SESSION_KEY) || 'null')
-  } catch {
-    return null
-  }
-}
-
-const saveDemoSession = (email) => {
-  const session = {
-    access_token: 'mock-token-demo',
-    user: { id: 'mock-user-1', email },
-  }
-  window.localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session))
-  return session
-}
-
-// Fallback dummy client in case Supabase credentials fail or in mock mode
-const createMockClient = () => ({
-  auth: {
-    getSession: async () => ({
-      data: { session: getDemoSession() },
-      error: null,
-    }),
-    onAuthStateChange: (callback) => {
-      return {
-        data: {
-          subscription: {
-            unsubscribe: () => {},
-          },
+// If a real client exists, never inject a mock token.
+// Keep the mock client only when VITE_SUPABASE_URL is missing,
+// and make its getSession return session: null (no fake access_token)
+// so the backend's dev mode accepts requests without a token.
+export const supabase = hasValidConfig
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : {
+      auth: {
+        async getSession() {
+          return { data: { session: null }, error: null }
         },
-      }
-    },
-    signInWithPassword: async ({ email }) => {
-      const session = saveDemoSession(email)
-      return { data: { session, user: session.user }, error: null }
-    },
-    signUp: async ({ email }) => {
-      const session = saveDemoSession(email)
-      return { data: { session, user: session.user }, error: null }
-    },
-    signOut: async () => {
-      window.localStorage.removeItem(DEMO_SESSION_KEY)
-      return { error: null }
-    },
-  },
-  from: () => ({
-    select: () => ({
-      eq: () => ({
-        order: () => Promise.resolve({ data: [], error: null }),
-        execute: () => Promise.resolve({ data: [], error: null }),
-      }),
-      execute: () => Promise.resolve({ data: [], error: null }),
-    }),
-    insert: () => ({
-      execute: () => Promise.resolve({ data: [{ id: 'mock-id' }], error: null }),
-    }),
-    update: () => ({
-      eq: () => ({
-        execute: () => Promise.resolve({ data: [{}], error: null }),
-      }),
-    }),
-  }),
-})
-
-let client
-try {
-  if (hasSupabaseConfig) {
-    client = createClient(supabaseUrl, supabaseAnonKey)
-  } else {
-    client = createMockClient()
-  }
-} catch (e) {
-  console.warn('Supabase initialization failed, falling back to mock client:', e)
-  client = createMockClient()
-}
-
-export const supabase = client
+        async getUser() {
+          return { data: { user: null }, error: null }
+        },
+        onAuthStateChange(_callback) {
+          return {
+            data: {
+              subscription: {
+                unsubscribe() {},
+              },
+            },
+          }
+        },
+        async signInWithPassword() {
+          return { data: { user: null, session: null }, error: null }
+        },
+        async signOut() {
+          return { error: null }
+        },
+      },
+    }
